@@ -16,7 +16,7 @@ async def get_locations(
     limit: int = Query(100, ge=1, le=100),
     state: Optional[str] = None,
     district: Optional[str] = None,
-    area_type: Optional[str] = None,
+    sub_district: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
 ):
     query = select(Location)
@@ -24,8 +24,8 @@ async def get_locations(
         query = query.where(Location.state.ilike(f"%{state}%"))
     if district:
         query = query.where(Location.district.ilike(f"%{district}%"))
-    if area_type:
-        query = query.where(Location.area_type == area_type)
+    if sub_district:
+        query = query.where(Location.sub_district.ilike(f"%{sub_district}%"))
 
     query = query.offset(skip).limit(limit)
     result = await db.execute(query)

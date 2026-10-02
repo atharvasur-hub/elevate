@@ -19,17 +19,24 @@ async def ask_database(
     query_in: NaturalLanguageQueryRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    sql_query, results, summary, execution_time = await process_natural_language_query(
+    plan_result = await process_natural_language_query(
         question=query_in.question,
         include_summary=query_in.include_summary,
         db=db,
     )
 
+    traceability_rows = plan_result["traceability_rows"]
+    ai_summary = plan_result["ai_summary"] if query_in.include_summary else None
+
     return NaturalLanguageQueryResponse(
         question=query_in.question,
-        sql_query=sql_query,
-        results=results,
-        row_count=len(results),
-        summary=summary,
-        execution_time_ms=execution_time,
+        sql_query=plan_result["sql_query"],
+        display_type=plan_result["display_type"],
+        ai_summary=ai_summary,
+        traceability_rows=traceability_rows,
+        results=traceability_rows,
+        row_count=len(traceability_rows),
+        summary=ai_summary,
+        execution_time_ms=plan_result["execution_time_ms"],
     )
+

@@ -44,6 +44,11 @@ body {
   border-radius: 0.75rem;
 }
 
+.leaflet-layer,
+.leaflet-tile-pane {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%);
+}
+
 .leaflet-popup-content-wrapper {
   background: #0f172a !important;
   color: #f8fafc !important;

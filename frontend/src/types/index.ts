@@ -6,6 +6,9 @@ export interface NaturalLanguageQueryRequest {
 export interface NaturalLanguageQueryResponse {
   question: string;
   sql_query: string;
+  display_type: "map" | "bar_chart" | "table" | "text";
+  ai_summary?: string | null;
+  traceability_rows: Record<string, any>[];
   results: Record<string, any>[];
   row_count: number;
   summary?: string | null;

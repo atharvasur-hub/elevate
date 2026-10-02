@@ -4,13 +4,11 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Navbar } from "@/components/Navbar";
 import { SearchBar } from "@/components/SearchBar";
 import { StatsOverview } from "@/components/StatsOverview";
-import { MapWrapper } from "@/components/MapWrapper";
-import { AiRecommendations } from "@/components/AiRecommendations";
-import { DataResultsTable } from "@/components/DataResultsTable";
+import { DynamicOutput } from "@/components/DynamicOutput";
 import { askNaturalLanguageQuery } from "@/lib/api";
 import { DEFAULT_MAP_MARKERS, extractMarkersFromResults } from "@/lib/geoData";
 import { MapMarkerData, NaturalLanguageQueryResponse } from "@/types";
-import { AlertCircle, Layers, Sparkles, MapPin, RefreshCw, BarChart3 } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 
 export default function DashboardPage() {
   const [question, setQuestion] = useState("Which schemes have allocated funds in Maharashtra?");
@@ -35,12 +33,13 @@ export default function DashboardPage() {
 
       setResponse(data);
 
-      // Extract coordinates from returned data or fallback to defaults if query returned non-geo data
-      const extracted = extractMarkersFromResults(data.results);
+      // Extract coordinates from returned traceability_rows or results
+      const activeRows = data.traceability_rows?.length ? data.traceability_rows : data.results || [];
+      const extracted = extractMarkersFromResults(activeRows);
       if (extracted.length > 0) {
         setMarkers(extracted);
       } else {
-        // If results don't have location fields (e.g. "top 3 schemes by budget"), keep representative markers
+        // If results don't have location fields, keep representative markers
         setMarkers(DEFAULT_MAP_MARKERS);
       }
     } catch (err: any) {
@@ -58,6 +57,10 @@ export default function DashboardPage() {
   useEffect(() => {
     executeQuery("Which schemes have allocated funds in Maharashtra?", true);
   }, [executeQuery]);
+
+  const activeRows = response?.traceability_rows?.length
+    ? response.traceability_rows
+    : response?.results || [];
 
   return (
     <div className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col selection:bg-sky-500/30 selection:text-sky-200">
@@ -101,52 +104,20 @@ export default function DashboardPage() {
             rowCount={response ? response.row_count : markers.length}
             executionTimeMs={response ? response.execution_time_ms : 0}
             markers={markers}
-            rawResults={response?.results || []}
+            rawResults={activeRows}
           />
         </section>
 
-        {/* Center Geographic Map Section */}
-        <section className="w-full space-y-2">
-          <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-sky-400" />
-              <h2 className="text-sm font-bold text-white uppercase tracking-wider">
-                Geographic Scheme Distribution Map
-              </h2>
-            </div>
-            <div className="text-xs text-slate-400 flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-sky-400"></span>
-              <span>React-Leaflet Live Canvas</span>
-            </div>
-          </div>
-
-          <MapWrapper
+        {/* Dynamic Output Component (AI Summary + Map / Bar Chart / Table / Text Visualizer) */}
+        <section className="w-full">
+          <DynamicOutput
+            response={response}
+            isLoading={isLoading}
             markers={markers}
             selectedMarkerId={selectedMarkerId}
             onMarkerSelect={(m) => setSelectedMarkerId(m.id)}
           />
         </section>
-
-        {/* AI Recommendations Section */}
-        <section className="w-full">
-          <AiRecommendations
-            summary={response?.summary}
-            sqlQuery={response?.sql_query}
-            question={response?.question || question}
-            isLoading={isLoading}
-            rowCount={response ? response.row_count : 0}
-          />
-        </section>
-
-        {/* Dynamic Data Table & Raw JSON payload */}
-        {response && response.results && response.results.length > 0 && (
-          <section className="w-full">
-            <DataResultsTable
-              results={response.results}
-              question={response.question}
-            />
-          </section>
-        )}
       </main>
 
       {/* Footer */}

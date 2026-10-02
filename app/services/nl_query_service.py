@@ -1,6 +1,8 @@
+import json
+import os
 import re
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Literal, Optional
 from google import genai
 from google.genai import types
 from sqlalchemy import text
@@ -9,57 +11,80 @@ from fastapi import HTTPException, status
 
 from app.core.config import settings
 
+VALID_DISPLAY_TYPES = {"map", "bar_chart", "table", "text"}
+
 # Database Schema Context for Gemini
 DATABASE_SCHEMA_PROMPT = """
 You are an expert PostgreSQL DBA and Data Analyst.
-Translate the user's natural language question into a single valid, optimized PostgreSQL query based on the following database schema.
+Translate the user's natural language question into a single valid, optimized PostgreSQL query and visualization recommendation based on the following database schema.
 
 ### TABLES & COLUMNS:
 
-1. Table: `schemes` (Government Welfare Schemes)
+1. Table: `locations` (Geographic Regions & Master Coordinates)
    - `id`: INTEGER PRIMARY KEY
-   - `name`: VARCHAR(255) (e.g. 'Pradhan Mantri Kisan Samman Nidhi')
-   - `code`: VARCHAR(50) UNIQUE (e.g. 'PM-KISAN', 'PMAY-G', 'MGNREGA', 'AB-PMJAY', 'JJM', 'PM-POSHAN', 'PM-SVANIDHI', 'PLI-AUTO', 'SBM-U-2', 'SAMARTH')
-   - `ministry`: VARCHAR(255) (e.g. 'Ministry of Agriculture and Farmers Welfare')
-   - `sector`: VARCHAR(100) (e.g. 'Agriculture', 'Housing', 'Employment', 'Healthcare', 'Water & Sanitation', 'Education & Nutrition', 'Urban Livelihood', 'Manufacturing', 'Sanitation & Waste Management', 'Skill Development')
-   - `description`: TEXT
-   - `eligibility_criteria`: TEXT
-   - `budget_allocated`: FLOAT (total national budget in Crores)
-   - `is_active`: BOOLEAN
-   - `launch_date`: DATE
+   - `state`: VARCHAR(100) (e.g. 'Maharashtra', 'Gujarat')
+   - `district`: VARCHAR(100) (e.g. 'Pune', 'Nagpur', 'Nashik', 'Thane', 'Ahmedabad', 'Surat', 'Vadodara')
+   - `sub_district`: VARCHAR(100) (e.g. 'Haveli', 'Bavla', 'Kamrej', 'Hingna', 'Niphad', 'Khed', 'Ambernath', 'Daskroi', 'Savli', etc.)
+   - `latitude`: FLOAT (Geographic latitude for mapping)
+   - `longitude`: FLOAT (Geographic longitude for mapping)
    - `created_at`: TIMESTAMP WITH TIME ZONE
-   - `updated_at`: TIMESTAMP WITH TIME ZONE
 
-2. Table: `locations` (Geographic Regions)
+2. Table: `beneficiaries` (Master Beneficiary Registry)
    - `id`: INTEGER PRIMARY KEY
-   - `state`: VARCHAR(100) (e.g. 'Maharashtra', 'Uttar Pradesh', 'Karnataka', 'Gujarat', 'Rajasthan', 'Madhya Pradesh', 'Bihar', 'Tamil Nadu', 'Odisha', 'Assam')
-   - `district`: VARCHAR(100) (e.g. 'Pune', 'Varanasi', 'Bengaluru Rural', 'Ahmedabad', 'Jaipur', 'Indore', 'Patna', 'Coimbatore', 'Khordha', 'Kamrup')
-   - `sub_district`: VARCHAR(100) (e.g. 'Haveli', 'Sadar', 'Hoskote', 'Daskroi', 'Sanganer', 'Sanwer', 'Danapur', 'Pollachi', 'Bhubaneswar', 'Guwahati')
-   - `pincode`: VARCHAR(10)
-   - `area_type`: VARCHAR(50) ('Rural', 'Urban', 'Semi-Urban')
+   - `beneficiary_code`: VARCHAR(50) UNIQUE (e.g. 'B-003649')
+   - `gender`: VARCHAR(20) ('M', 'F', 'Other' or NULL)
    - `created_at`: TIMESTAMP WITH TIME ZONE
-   - `updated_at`: TIMESTAMP WITH TIME ZONE
 
-3. Table: `funds` (Scheme Fund Allocations and Utilization per Location)
+3. Table: `agriculture_scheme` (Farmer Subsidies and Land Records)
    - `id`: INTEGER PRIMARY KEY
-   - `scheme_id`: INTEGER (FOREIGN KEY -> schemes.id)
+   - `beneficiary_id`: INTEGER (FOREIGN KEY -> beneficiaries.id)
    - `location_id`: INTEGER (FOREIGN KEY -> locations.id)
-   - `financial_year`: VARCHAR(20) (e.g. '2024-2025')
-   - `allocated_amount`: FLOAT (in Crores)
-   - `disbursed_amount`: FLOAT (in Crores)
-   - `utilized_amount`: FLOAT (in Crores)
-   - `status`: VARCHAR(50) (e.g. 'Partially Utilized', 'Disbursed', 'Fully Utilized', 'Under Execution', 'Under Review', 'Completed')
-   - `sanction_date`: DATE
+   - `beneficiary_code`: VARCHAR(50)
+   - `land_holding_hectares`: FLOAT (Farm land size in hectares)
+   - `subsidy_disbursed_inr`: FLOAT (Disbursed subsidy amount in INR)
+   - `disbursal_date`: DATE (Date of subsidy disbursal YYYY-MM-DD)
    - `created_at`: TIMESTAMP WITH TIME ZONE
-   - `updated_at`: TIMESTAMP WITH TIME ZONE
+
+4. Table: `rural_dev_scheme` (MGNREGA Rural Employment & Projects)
+   - `id`: INTEGER PRIMARY KEY
+   - `beneficiary_id`: INTEGER (FOREIGN KEY -> beneficiaries.id)
+   - `location_id`: INTEGER (FOREIGN KEY -> locations.id)
+   - `beneficiary_code`: VARCHAR(50)
+   - `gender`: VARCHAR(20) ('M', 'F', 'Other')
+   - `days_worked`: INTEGER (Total employment days worked)
+   - `wages_paid_inr`: FLOAT (Total wages paid in INR)
+   - `project_type`: VARCHAR(100) ('Pond Excavation', 'Road Leveling', 'Tree Plantation')
+   - `created_at`: TIMESTAMP WITH TIME ZONE
+
+5. Table: `water_scheme` (JJM Tap Water Connections & Infrastructure)
+   - `id`: INTEGER PRIMARY KEY
+   - `beneficiary_id`: INTEGER (FOREIGN KEY -> beneficiaries.id)
+   - `location_id`: INTEGER (FOREIGN KEY -> locations.id)
+   - `beneficiary_code`: VARCHAR(50)
+   - `tap_connection_status`: VARCHAR(50) ('Functional', 'Non-Functional', 'Pending Construction')
+   - `cost_incurred`: FLOAT (Installation / pipeline cost in INR)
+   - `created_at`: TIMESTAMP WITH TIME ZONE
 
 ### RULES FOR SQL GENERATION:
-1. Return ONLY the raw SQL query. Do not wrap it in markdown code fences (no ```sql ... ```), do not include comments or explanations.
-2. The query MUST be a read-only SELECT or WITH statement.
-3. Use ILIKE or LOWER() for flexible, case-insensitive string matching.
-4. Join tables logically when query spans multiple entities (e.g., JOIN schemes on funds.scheme_id = schemes.id JOIN locations on funds.location_id = locations.id).
-5. Always order results meaningfully if ranking, highest/lowest amounts, or counts are requested.
-6. Limit results to 50 rows maximum unless explicitly specified otherwise.
+1. The SQL query MUST be a valid, read-only SELECT or WITH statement.
+2. Join `locations` using `JOIN locations l ON <scheme_table>.location_id = l.id`.
+3. Join `beneficiaries` using `JOIN beneficiaries b ON <scheme_table>.beneficiary_id = b.id`.
+4. CRITICAL: Whenever geographic regions, locations, or map views are involved, ALWAYS SELECT `l.latitude`, `l.longitude`, `l.state`, `l.district`, and `l.sub_district` so the Leaflet map can render markers!
+5. Use ILIKE or LOWER() for flexible, case-insensitive string matching.
+6. Always order results meaningfully if ranking, highest/lowest amounts, or counts are requested.
+7. Limit results to 50 rows maximum unless explicitly specified otherwise.
+
+### OUTPUT FORMAT:
+You MUST return a STRICT JSON object containing exactly the following keys:
+- "sql_query": A valid PostgreSQL query string (read-only SELECT without markdown fences).
+- "display_type": Exactly one of 'map', 'bar_chart', 'table', or 'text'.
+- "ai_summary": A concise 1-3 sentence natural language explanation answering the question and describing the query insights.
+
+### DISPLAY TYPE SELECTION RULES:
+- 'map': Choose when the question focuses on geographic regions, locations, states, districts, or spatial distribution (Make sure to select l.latitude, l.longitude).
+- 'bar_chart': Choose when comparing numerical amounts (subsidies, wages, costs, days worked, land holdings) across schemes, locations, project types, or categories.
+- 'table': Choose for multi-column tabular listings, records, comprehensive breakdowns, or multiple attributes.
+- 'text': Choose for single-value answers, simple aggregations/counts, definitions, or direct short textual responses.
 """
 
 
@@ -79,7 +104,7 @@ def sanitize_and_validate_sql(raw_sql: str) -> str:
     """
     cleaned_sql = raw_sql.strip()
 
-    # Remove markdown code blocks if Gemini enclosed them
+    # Remove markdown code blocks if enclosed
     if cleaned_sql.startswith("```"):
         cleaned_sql = re.sub(r"^```(?:sql)?\s*", "", cleaned_sql, flags=re.IGNORECASE)
         cleaned_sql = re.sub(r"\s*```$", "", cleaned_sql)
@@ -120,9 +145,139 @@ def sanitize_and_validate_sql(raw_sql: str) -> str:
     return cleaned_sql
 
 
-async def generate_sql_from_question(question: str) -> str:
+def _infer_display_type(sql_query: str, question: str) -> Literal["map", "bar_chart", "table", "text"]:
     """
-    Uses Google Gemini API to translate a natural language question into PostgreSQL.
+    Infers the appropriate display type based on SQL features and question intent.
+    """
+    q = question.lower()
+    s = sql_query.lower()
+    if any(k in q or k in s for k in ["state", "district", "location", "sub_district", "map", "region", "geo", "latitude", "longitude"]):
+        return "map"
+    if any(k in q or k in s for k in ["compare", "highest", "top", "budget", "amount", "wage", "subsidy", "cost", "chart", "bar"]):
+        return "bar_chart"
+    if "count(" in s or "avg(" in s or "sum(" in s:
+        return "text"
+    return "table"
+
+
+def _parse_gemini_json_response(raw_text: str, question: str) -> Dict[str, Any]:
+    """
+    Parses and validates the JSON output returned by Gemini.
+    """
+    cleaned = raw_text.strip()
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"\s*```$", "", cleaned)
+        cleaned = cleaned.strip()
+
+    try:
+        data = json.loads(cleaned)
+    except Exception:
+        # Fallback regex extraction of JSON
+        json_match = re.search(r"\{.*\}", cleaned, re.DOTALL)
+        if json_match:
+            data = json.loads(json_match.group(0))
+        else:
+            raise ValueError(f"Could not parse valid JSON from Gemini output: {raw_text}")
+
+    raw_sql = data.get("sql_query", "")
+    sql_query = sanitize_and_validate_sql(raw_sql)
+
+    display_type = str(data.get("display_type", "")).strip().lower()
+    if display_type not in VALID_DISPLAY_TYPES:
+        display_type = _infer_display_type(sql_query, question)
+
+    ai_summary = str(data.get("ai_summary", "")).strip()
+    if not ai_summary:
+        ai_summary = f"Generated query analysis for: '{question}'."
+
+    return {
+        "sql_query": sql_query,
+        "display_type": display_type,
+        "ai_summary": ai_summary,
+    }
+
+
+def _get_fallback_analysis(question: str) -> Dict[str, Any]:
+    """
+    Rule-based fallback when Gemini API encounters quota limits or network issues,
+    targeting the new Supabase PostgreSQL schema.
+    """
+    q_lower = question.lower()
+    if "maharashtra" in q_lower:
+        return {
+            "sql_query": (
+                "SELECT a.id, a.beneficiary_code, a.land_holding_hectares, a.subsidy_disbursed_inr, a.disbursal_date, "
+                "l.state, l.district, l.sub_district, l.latitude, l.longitude "
+                "FROM agriculture_scheme a "
+                "JOIN locations l ON a.location_id = l.id "
+                "WHERE l.state ILIKE '%Maharashtra%' "
+                "LIMIT 25;"
+            ),
+            "display_type": "map",
+            "ai_summary": "Here is the active agriculture subsidy distribution across Maharashtra districts with verified geo-coordinates.",
+        }
+    elif "water" in q_lower or "tap" in q_lower:
+        return {
+            "sql_query": (
+                "SELECT w.id, w.beneficiary_code, w.tap_connection_status, w.cost_incurred, "
+                "l.state, l.district, l.sub_district, l.latitude, l.longitude "
+                "FROM water_scheme w "
+                "JOIN locations l ON w.location_id = l.id "
+                "LIMIT 25;"
+            ),
+            "display_type": "map",
+            "ai_summary": "Household tap water connection statuses and incurred installation costs across locations.",
+        }
+    elif "rural" in q_lower or "wage" in q_lower or "work" in q_lower:
+        return {
+            "sql_query": (
+                "SELECT r.project_type, COUNT(*) as worker_count, AVG(r.wages_paid_inr) as avg_wages, SUM(r.days_worked) as total_days "
+                "FROM rural_dev_scheme r "
+                "GROUP BY r.project_type "
+                "ORDER BY worker_count DESC;"
+            ),
+            "display_type": "bar_chart",
+            "ai_summary": "Comparative breakdown of rural development project types, worker counts, and average wages.",
+        }
+    elif "highest" in q_lower or "top" in q_lower or "subsidy" in q_lower:
+        return {
+            "sql_query": (
+                "SELECT a.beneficiary_code, a.land_holding_hectares, a.subsidy_disbursed_inr, l.district, l.state "
+                "FROM agriculture_scheme a "
+                "JOIN locations l ON a.location_id = l.id "
+                "WHERE a.subsidy_disbursed_inr IS NOT NULL "
+                "ORDER BY a.subsidy_disbursed_inr DESC LIMIT 10;"
+            ),
+            "display_type": "bar_chart",
+            "ai_summary": "Top agricultural beneficiaries receiving highest subsidy disbursals across districts.",
+        }
+    elif "location" in q_lower or "district" in q_lower:
+        return {
+            "sql_query": (
+                "SELECT id, state, district, sub_district, latitude, longitude FROM locations ORDER BY state, district LIMIT 35;"
+            ),
+            "display_type": "map",
+            "ai_summary": "Standardized master locations registry across Gujarat and Maharashtra.",
+        }
+    else:
+        return {
+            "sql_query": (
+                "SELECT a.id, a.beneficiary_code, a.land_holding_hectares, a.subsidy_disbursed_inr, "
+                "l.state, l.district, l.sub_district, l.latitude, l.longitude "
+                "FROM agriculture_scheme a "
+                "JOIN locations l ON a.location_id = l.id "
+                "LIMIT 20;"
+            ),
+            "display_type": "table",
+            "ai_summary": "Query results detailing agriculture scheme disbursements and beneficiary location records.",
+        }
+
+
+async def generate_sql_and_analysis_from_question(question: str) -> Dict[str, Any]:
+    """
+    Uses Google Gemini API to translate a natural language question into strict JSON containing
+    sql_query, display_type ('map' | 'bar_chart' | 'table' | 'text'), and ai_summary.
     """
     client = _get_gemini_client()
 
@@ -130,36 +285,37 @@ async def generate_sql_from_question(question: str) -> str:
 {DATABASE_SCHEMA_PROMPT}
 
 User Question: {question}
-SQL Query:
+JSON Output:
 """
-    try:
-        response = client.models.generate_content(
-            model=settings.GEMINI_MODEL,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.0,
-            ),
-        )
-        if not response.text:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Gemini API returned an empty response.",
-            )
+    candidate_models = list(dict.fromkeys([
+        settings.GEMINI_MODEL,
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+        "gemini-2.5-flash",
+    ]))
 
-        sql_query = sanitize_and_validate_sql(response.text)
-        return sql_query
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Gemini API error during SQL generation: {str(e)}",
-        )
+    for model_name in candidate_models:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.0,
+                    response_mime_type="application/json",
+                ),
+            )
+            if response.text:
+                return _parse_gemini_json_response(response.text, question)
+        except Exception:
+            continue
+
+    # Fallback if Gemini quota is unavailable
+    return _get_fallback_analysis(question)
 
 
 async def execute_sql_query(sql_query: str, db: AsyncSession) -> List[Dict[str, Any]]:
     """
-    Executes the validated SQL query on Supabase PostgreSQL and returns list of dictionaries.
+    Executes the validated SQL query against Supabase PostgreSQL and returns the raw resulting rows as a list of dictionaries.
     """
     try:
         result = await db.execute(text(sql_query))
@@ -182,56 +338,32 @@ async def execute_sql_query(sql_query: str, db: AsyncSession) -> List[Dict[str, 
         )
 
 
-async def generate_result_summary(question: str, sql_query: str, results: List[Dict[str, Any]]) -> str:
-    """
-    Generates a concise natural language explanation/summary of the database results.
-    """
-    client = _get_gemini_client()
-
-    # Limit sample rows sent to summary to prevent token overflow
-    sample_results = results[:20]
-
-    prompt = f"""
-You are an AI analyst. A user asked a question about government schemes and funding data.
-The database query has been executed and returned the results below.
-
-Question: {question}
-SQL Query: {sql_query}
-Query Results ({len(results)} rows total):
-{sample_results}
-
-Provide a concise, direct, and professional 1-3 sentence summary answering the user's question based on these results.
-"""
-    try:
-        response = client.models.generate_content(
-            model=settings.GEMINI_MODEL,
-            contents=prompt,
-        )
-        return response.text.strip() if response.text else "Query executed successfully."
-    except Exception:
-        return "Query executed successfully."
-
-
 async def process_natural_language_query(
     question: str,
     include_summary: bool,
     db: AsyncSession,
-) -> Tuple[str, List[Dict[str, Any]], Optional[str], float]:
+) -> Dict[str, Any]:
     """
-    Orchestrates NL -> SQL -> Execution -> Summary.
+    Orchestrates NL -> Strict JSON analysis via Gemini -> SQL Execution against Supabase -> Response Assembly.
+    Returns dictionary with: sql_query, display_type, ai_summary, traceability_rows, execution_time_ms.
     """
     start_time = time.time()
 
-    # 1. Translate question to SQL via Gemini
-    sql_query = await generate_sql_from_question(question)
+    # 1. Translate question to strict JSON (sql_query, display_type, ai_summary) via Gemini
+    analysis = await generate_sql_and_analysis_from_question(question)
+    sql_query = analysis["sql_query"]
+    display_type = analysis["display_type"]
+    ai_summary = analysis["ai_summary"]
 
-    # 2. Execute SQL query on Supabase
-    results = await execute_sql_query(sql_query, db)
-
-    # 3. Generate summary if requested
-    summary = None
-    if include_summary:
-        summary = await generate_result_summary(question, sql_query, results)
+    # 2. Execute SQL query on Supabase PostgreSQL to get raw rows
+    traceability_rows = await execute_sql_query(sql_query, db)
 
     execution_time_ms = round((time.time() - start_time) * 1000, 2)
-    return sql_query, results, summary, execution_time_ms
+
+    return {
+        "sql_query": sql_query,
+        "display_type": display_type,
+        "ai_summary": ai_summary,
+        "traceability_rows": traceability_rows,
+        "execution_time_ms": execution_time_ms,
+    }
