@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Navbar } from "@/components/Navbar";
 import { SearchBar } from "@/components/SearchBar";
-import { StatsOverview } from "@/components/StatsOverview";
 import { DynamicOutput } from "@/components/DynamicOutput";
 import { askNaturalLanguageQuery } from "@/lib/api";
 import { DEFAULT_MAP_MARKERS, extractMarkersFromResults } from "@/lib/geoData";
@@ -11,7 +10,7 @@ import { MapMarkerData, NaturalLanguageQueryResponse } from "@/types";
 import { AlertCircle } from "lucide-react";
 
 export default function DashboardPage() {
-  const [question, setQuestion] = useState("Which schemes have allocated funds in Maharashtra?");
+  const [question, setQuestion] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,10 +52,7 @@ export default function DashboardPage() {
     }
   }, []);
 
-  // Run initial query on page mount
-  useEffect(() => {
-    executeQuery("Which schemes have allocated funds in Maharashtra?", true);
-  }, [executeQuery]);
+
 
   const activeRows = response?.traceability_rows?.length
     ? response.traceability_rows
@@ -97,16 +93,6 @@ export default function DashboardPage() {
             </button>
           </div>
         )}
-
-        {/* Stats Overview KPIs */}
-        <section className="w-full">
-          <StatsOverview
-            rowCount={response ? response.row_count : markers.length}
-            executionTimeMs={response ? response.execution_time_ms : 0}
-            markers={markers}
-            rawResults={activeRows}
-          />
-        </section>
 
         {/* Dynamic Output Component (AI Summary + Map / Bar Chart / Table / Text Visualizer) */}
         <section className="w-full">

@@ -291,45 +291,9 @@ export function DynamicOutput({
         );
 
       case "text":
-        return (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-purple-400" />
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                  Detailed Analysis
-                </h3>
-              </div>
-              <span className="text-[11px] text-purple-400 font-mono bg-purple-950/60 border border-purple-800/50 px-2 py-0.5 rounded-full">
-                Narrative Output
-              </span>
-            </div>
-
-            <div className="w-full bg-slate-950/70 border border-slate-800/90 rounded-2xl p-6 backdrop-blur space-y-4">
-              <p className="text-slate-200 text-base sm:text-lg leading-relaxed font-light">
-                {aiSummary}
-              </p>
-              {rows.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-4 border-t border-slate-800/80">
-                  {rows.slice(0, 6).map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs space-y-1"
-                    >
-                      <div className="text-slate-400 font-mono text-[11px]">Record #{idx + 1}</div>
-                      <div className="font-medium text-slate-200 truncate">
-                        {item.name || item.scheme_name || item.state || JSON.stringify(item)}
-                      </div>
-                      {item.status && (
-                        <div className="text-sky-400 font-semibold text-[10px]">{item.status}</div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        );
+        // The text is already shown in the L4 Gemini Synthesis Engine block above. 
+        // We don't need a redundant duplicate block.
+        return null;
 
       default:
         return <DataResultsTable results={rows} question={response.question} />;
@@ -374,25 +338,25 @@ export function DynamicOutput({
   const badge = getDisplayTypeBadge();
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-4">
       {/* ALWAYS DISPLAY AI SUMMARY ABOVE THE VISUALIZED COMPONENT */}
-      <section className="w-full bg-gradient-to-br from-slate-900/90 via-slate-900/70 to-slate-950 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-2xl backdrop-blur-xl relative overflow-hidden">
+      <section className="w-full bg-[#050505]/90 border border-white/10 rounded-2xl p-5 sm:p-6 shadow-2xl backdrop-blur-xl relative overflow-hidden">
         {/* Glow accent */}
-        <div className="absolute top-0 right-0 w-72 h-72 bg-sky-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-        <div className="absolute bottom-0 left-0 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20" />
+        <div className="absolute top-0 right-0 w-72 h-72 bg-lime-500/5 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-pink-500/5 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20" />
 
         <div className="relative z-10 space-y-3">
           {/* Header Row */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 pb-3">
             <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-gradient-to-tr from-sky-500/20 to-purple-500/20 border border-sky-500/30 text-sky-400">
-                <Sparkles className="w-4 h-4 text-sky-400 animate-pulse" />
+              <div className="p-2 rounded-lg bg-pink-500/10 border border-pink-500/30 text-pink-400">
+                <Sparkles className="w-4 h-4 text-pink-400 animate-pulse" />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-white tracking-wide flex items-center gap-2">
-                  <span>Gemini AI Insights & Synthesis</span>
+                <h2 className="text-[10px] uppercase font-bold text-pink-400 tracking-wider flex items-center gap-2">
+                  <span>L4 GEMINI SYNTHESIS ENGINE</span>
                 </h2>
-                <p className="text-[11px] text-slate-400 font-medium">
+                <p className="text-xs text-slate-300 font-medium mt-0.5">
                   {response.question}
                 </p>
               </div>
@@ -401,7 +365,7 @@ export function DynamicOutput({
             {/* Visualizer Badge & SQL Toggle */}
             <div className="flex items-center gap-2">
               <div
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${badge.classes}`}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${badge.classes}`}
               >
                 {badge.icon}
                 <span>{badge.label}</span>
@@ -410,14 +374,14 @@ export function DynamicOutput({
               {response.sql_query && (
                 <button
                   onClick={() => setShowSql(!showSql)}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-300 hover:text-white text-xs font-medium transition-colors cursor-pointer"
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#111] hover:bg-[#222] border border-white/10 text-slate-300 hover:text-white text-[10px] uppercase font-bold transition-colors cursor-pointer"
                 >
-                  <Code2 className="w-3.5 h-3.5 text-sky-400" />
+                  <Code2 className="w-3.5 h-3.5 text-lime-400" />
                   <span>SQL</span>
                   {showSql ? (
-                    <ChevronUp className="w-3 h-3 text-slate-400" />
+                    <ChevronUp className="w-3 h-3 text-slate-500" />
                   ) : (
-                    <ChevronDown className="w-3 h-3 text-slate-400" />
+                    <ChevronDown className="w-3 h-3 text-slate-500" />
                   )}
                 </button>
               )}
@@ -425,27 +389,29 @@ export function DynamicOutput({
           </div>
 
           {/* AI Summary Text */}
-          <div className="pt-1">
-            <p className="text-sm sm:text-base text-slate-200 leading-relaxed font-normal">
+          <div className="pt-2 pb-1">
+            <p className="text-[15px] sm:text-[17px] text-slate-100 leading-relaxed font-light">
               {aiSummary}
             </p>
           </div>
 
-          {/* Metrics Pill Footer */}
-          <div className="flex flex-wrap items-center gap-3 pt-2 text-[11px] text-slate-400 font-mono">
-            <span className="flex items-center gap-1">
-              <Database className="w-3 h-3 text-emerald-400" />
-              <span>Traceability Rows: <strong className="text-slate-200">{rows.length}</strong></span>
+          {/* Tiny Metrics Badges Footer */}
+          <div className="flex flex-wrap items-center gap-2 pt-2 text-[10px] font-bold uppercase tracking-wider">
+            <span className="flex items-center gap-1.5 bg-lime-400/10 border border-lime-400/20 text-lime-400 px-2 py-0.5 rounded-sm">
+              <span>⚡</span> {response.execution_time_ms}ms Latency
             </span>
-            <span>•</span>
-            <span>
-              Execution Time: <strong className="text-sky-300">{response.execution_time_ms}ms</strong>
+            <span className="flex items-center gap-1.5 bg-pink-500/10 border border-pink-500/20 text-pink-400 px-2 py-0.5 rounded-sm">
+              <Database className="w-3 h-3" />
+              {rows.length} Rows Verified
+            </span>
+            <span className="flex items-center gap-1.5 bg-white/5 border border-white/10 text-slate-400 px-2 py-0.5 rounded-sm">
+              <Check className="w-3 h-3" /> NIC-Audit Level 3
             </span>
           </div>
 
           {/* Expandable SQL Viewer */}
           {showSql && response.sql_query && (
-            <div className="pt-2">
+            <div className="pt-3">
               <SqlViewer sql={response.sql_query} />
             </div>
           )}

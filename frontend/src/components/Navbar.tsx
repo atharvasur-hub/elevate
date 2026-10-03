@@ -36,7 +36,7 @@ export function Navbar({ onRefresh }: NavbarProps) {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
-                ELEVATE <span className="text-xs px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20 font-medium">GeoAI Hub</span>
+                BHARATGEO <span className="text-xs px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20 font-medium">GeoAI Hub</span>
               </h1>
             </div>
             <p className="text-xs text-slate-400 hidden sm:block">

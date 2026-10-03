@@ -93,13 +93,13 @@ export function DataResultsTable({ results, question }: DataResultsTableProps) {
           </div>
 
           {/* View Toggle */}
-          <div className="flex rounded-lg bg-slate-950 p-0.5 border border-slate-800">
+          <div className="flex rounded-lg bg-[#111] p-0.5 border border-white/10">
             <button
               onClick={() => setViewMode("table")}
               className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
                 viewMode === "table"
-                  ? "bg-sky-500/20 text-sky-300 border border-sky-500/30"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-lime-400/20 text-lime-400 border border-lime-400/30"
+                  : "text-slate-500 hover:text-slate-300"
               }`}
             >
               <Table className="w-3.5 h-3.5" />
@@ -109,8 +109,8 @@ export function DataResultsTable({ results, question }: DataResultsTableProps) {
               onClick={() => setViewMode("json")}
               className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
                 viewMode === "json"
-                  ? "bg-sky-500/20 text-sky-300 border border-sky-500/30"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-lime-400/20 text-lime-400 border border-lime-400/30"
+                  : "text-slate-500 hover:text-slate-300"
               }`}
             >
               <Code className="w-3.5 h-3.5" />
@@ -122,15 +122,15 @@ export function DataResultsTable({ results, question }: DataResultsTableProps) {
           <button
             onClick={handleCopyJson}
             title="Copy JSON to clipboard"
-            className="p-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg bg-[#111] hover:bg-[#222] border border-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
           >
-            {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+            {copied ? <Check className="w-4 h-4 text-lime-400" /> : <Copy className="w-4 h-4" />}
           </button>
 
           <button
             onClick={handleExportCsv}
             title="Download CSV"
-            className="p-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg bg-[#111] hover:bg-[#222] border border-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
           >
             <Download className="w-4 h-4" />
           </button>
@@ -140,9 +140,9 @@ export function DataResultsTable({ results, question }: DataResultsTableProps) {
       {/* Content */}
       <div className="mt-4">
         {viewMode === "table" ? (
-          <div className="overflow-x-auto rounded-xl border border-slate-800 max-h-[420px] scrollbar-thin">
+          <div className="overflow-x-auto rounded-xl border border-white/5 max-h-[420px] scrollbar-thin">
             <table className="w-full text-left text-xs border-collapse">
-              <thead className="bg-slate-950/90 text-slate-300 uppercase tracking-wider font-semibold sticky top-0 border-b border-slate-800 z-10 backdrop-blur">
+              <thead className="bg-[#0a0a0a] text-slate-400 uppercase tracking-wider font-semibold sticky top-0 border-b border-white/10 z-10 backdrop-blur">
                 <tr>
                   <th className="py-2.5 px-3 w-10 text-slate-500">#</th>
                   {columns.map((col) => (
@@ -152,40 +152,40 @@ export function DataResultsTable({ results, question }: DataResultsTableProps) {
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60 bg-slate-900/40">
+              <tbody className="divide-y divide-white/5 bg-[#050505]/40">
                 {filteredResults.map((row, rIdx) => (
                   <tr
                     key={rIdx}
-                    className="hover:bg-slate-800/40 transition-colors group"
+                    className="hover:bg-white/5 transition-colors group"
                   >
-                    <td className="py-2.5 px-3 text-slate-500 font-mono text-[11px]">
+                    <td className="py-2.5 px-3 text-slate-600 font-mono text-[11px]">
                       {rIdx + 1}
                     </td>
                     {columns.map((col) => {
                       const val = row[col];
                       let display = val === null || val === undefined ? "—" : String(val);
 
-                      // Style status or amounts specifically
+                      const colLower = col.toLowerCase();
                       const isAmount =
-                        col.includes("amount") || col.includes("budget") || typeof val === "number";
+                        colLower.includes("amount") || colLower.includes("budget") || colLower.includes("subsidy") || colLower.includes("cost") || colLower.includes("wage") || colLower.includes("inr");
                       const isStatus = col.includes("status");
 
                       return (
                         <td
                           key={col}
                           className={`py-2.5 px-3 whitespace-nowrap text-slate-300 ${
-                            isAmount ? "font-mono font-medium text-sky-300" : ""
+                            isAmount ? "font-mono font-medium text-lime-400" : ""
                           }`}
                         >
                           {isStatus && typeof val === "string" ? (
                             <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase ${
                                 val.toLowerCase().includes("fully") ||
-                                val.toLowerCase().includes("completed")
-                                  ? "bg-emerald-950 text-emerald-400 border border-emerald-500/30"
+                                val.toLowerCase().includes("completed") || val.toLowerCase().includes("functional")
+                                  ? "bg-lime-400/10 text-lime-400 border border-lime-400/30"
                                   : val.toLowerCase().includes("disbursed")
-                                  ? "bg-sky-950 text-sky-400 border border-sky-500/30"
-                                  : "bg-amber-950 text-amber-400 border border-amber-500/30"
+                                  ? "bg-blue-500/10 text-blue-400 border border-blue-500/30"
+                                  : "bg-pink-500/10 text-pink-400 border border-pink-500/30 shadow-[0_0_10px_rgba(236,72,153,0.2)]"
                               }`}
                             >
                               {val}
