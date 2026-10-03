@@ -4,7 +4,7 @@ A production-ready, asynchronous **FastAPI** backend integrated with **Supabase 
 
 ---
 
-## =ƒÜÇ Features
+## ğŸš€ Features
 
 - **FastAPI**: High performance, type-safe API framework with automatic OpenAPI / Swagger documentation.
 - **Supabase PostgreSQL Integration**: Fully asynchronous connection pooling via SQLAlchemy 2.0 & `asyncpg` with URL-safe credential handling.
@@ -16,48 +16,48 @@ A production-ready, asynchronous **FastAPI** backend integrated with **Supabase 
 
 ---
 
-## =ƒôü Project Structure
+## ğŸ“ Project Structure
 
 ```text
-BharatGeo Insights/
-Gö£GöÇGöÇ app/
-Göé   Gö£GöÇGöÇ __init__.py
-Göé   Gö£GöÇGöÇ main.py                  # FastAPI application entrypoint & lifespan
-Göé   Gö£GöÇGöÇ api/
-Göé   Göé   Gö£GöÇGöÇ __init__.py
-Göé   Göé   GööGöÇGöÇ v1/
-Göé   Göé       Gö£GöÇGöÇ router.py        # Aggregated v1 router
-Göé   Göé       GööGöÇGöÇ endpoints/
-Göé   Göé           Gö£GöÇGöÇ health.py    # Database & service health check
-Göé   Göé           GööGöÇGöÇ items.py     # Sample async CRUD endpoints
-Göé   Gö£GöÇGöÇ core/
-Göé   Göé   Gö£GöÇGöÇ __init__.py
-Göé   Göé   Gö£GöÇGöÇ config.py            # Pydantic Settings & environment loader
-Göé   Göé   Gö£GöÇGöÇ database.py          # SQLAlchemy async engine, sessionmaker & get_db dependency
-Göé   Göé   GööGöÇGöÇ supabase.py          # Official Supabase Python SDK client wrapper
-Göé   Gö£GöÇGöÇ models/
-Göé   Göé   Gö£GöÇGöÇ __init__.py
-Göé   Göé   Gö£GöÇGöÇ base.py              # DeclarativeBase
-Göé   Göé   GööGöÇGöÇ item.py              # Sample SQLAlchemy ORM model
-Göé   GööGöÇGöÇ schemas/
-Göé       Gö£GöÇGöÇ __init__.py
-Göé       Gö£GöÇGöÇ health.py            # Pydantic models for health check
-Göé       GööGöÇGöÇ item.py              # Pydantic models for Item CRUD
-Gö£GöÇGöÇ tests/
-Göé   Gö£GöÇGöÇ conftest.py              # Pytest async fixtures
-Göé   GööGöÇGöÇ test_api.py              # Automated test suite
-Gö£GöÇGöÇ .env                         # Environment variables (secret)
-Gö£GöÇGöÇ .env.example                 # Environment variables template
-Gö£GöÇGöÇ .gitignore
-Gö£GöÇGöÇ create_tables.py             # Utility to initialize database tables in Supabase
-Gö£GöÇGöÇ pytest.ini                   # Pytest async configuration
-Gö£GöÇGöÇ requirements.txt             # Project dependencies
-GööGöÇGöÇ README.md
+elevate/
+â”œâ”€â”€ app/
+â”‚   â”œâ”€â”€ __init__.py
+â”‚   â”œâ”€â”€ main.py                  # FastAPI application entrypoint & lifespan
+â”‚   â”œâ”€â”€ api/
+â”‚   â”‚   â”œâ”€â”€ __init__.py
+â”‚   â”‚   â””â”€â”€ v1/
+â”‚   â”‚       â”œâ”€â”€ router.py        # Aggregated v1 router
+â”‚   â”‚       â””â”€â”€ endpoints/
+â”‚   â”‚           â”œâ”€â”€ health.py    # Database & service health check
+â”‚   â”‚           â””â”€â”€ items.py     # Sample async CRUD endpoints
+â”‚   â”œâ”€â”€ core/
+â”‚   â”‚   â”œâ”€â”€ __init__.py
+â”‚   â”‚   â”œâ”€â”€ config.py            # Pydantic Settings & environment loader
+â”‚   â”‚   â”œâ”€â”€ database.py          # SQLAlchemy async engine, sessionmaker & get_db dependency
+â”‚   â”‚   â””â”€â”€ supabase.py          # Official Supabase Python SDK client wrapper
+â”‚   â”œâ”€â”€ models/
+â”‚   â”‚   â”œâ”€â”€ __init__.py
+â”‚   â”‚   â”œâ”€â”€ base.py              # DeclarativeBase
+â”‚   â”‚   â””â”€â”€ item.py              # Sample SQLAlchemy ORM model
+â”‚   â””â”€â”€ schemas/
+â”‚       â”œâ”€â”€ __init__.py
+â”‚       â”œâ”€â”€ health.py            # Pydantic models for health check
+â”‚       â””â”€â”€ item.py              # Pydantic models for Item CRUD
+â”œâ”€â”€ tests/
+â”‚   â”œâ”€â”€ conftest.py              # Pytest async fixtures
+â”‚   â””â”€â”€ test_api.py              # Automated test suite
+â”œâ”€â”€ .env                         # Environment variables (secret)
+â”œâ”€â”€ .env.example                 # Environment variables template
+â”œâ”€â”€ .gitignore
+â”œâ”€â”€ create_tables.py             # Utility to initialize database tables in Supabase
+â”œâ”€â”€ pytest.ini                   # Pytest async configuration
+â”œâ”€â”€ requirements.txt             # Project dependencies
+â””â”€â”€ README.md
 ```
 
 ---
 
-## =ƒ¢án+Å Getting Started
+## ğŸ› ï¸ Getting Started
 
 ### 1. Prerequisites
 - Python 3.10+ (tested on Python 3.13)
@@ -118,7 +118,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ---
 
-## =ƒñû AI Natural Language Query (`/api/v1/query/ask`)
+## ğŸ¤– AI Natural Language Query (`/api/v1/query/ask`)
 
 Ask any question in plain English. The endpoint translates it to PostgreSQL using Gemini AI, executes it on Supabase, and returns the data with an AI summary.
 
@@ -147,7 +147,7 @@ curl -X POST "http://localhost:8000/api/v1/query/ask" \
 
 ---
 
-## =ƒº¬ Running Tests
+## ğŸ§ª Running Tests
 
 ```powershell
 pytest -v
@@ -162,6 +162,6 @@ Ask any of the following queries in the UI to demonstrate the intelligence Engin
 
 ## Recent Updates (v1.0.1)
 - **UI & UX Enhancements**: Implemented a modern dark-mode aesthetic with custom glowing cursor effects, interactive radial background glow, and smooth hover transitions to provide a premium user experience.
-- **AI Model Upgrade**: Migrated the core intelligence engine from gemini-2.5-flash to the highly capable gemini-1.5-pro model to handle more complex Natural Language to SQL generation with higher accuracy.
+- **AI Model Upgrade**: Migrated the core intelligence engine to the highly capable gemini-1.5-pro model to handle more complex Natural Language to SQL generation with higher accuracy.
 - **Resiliency & Fallbacks**: Engineered robust fallback mechanisms to handle Google API rate limits and 503 Service Unavailable errors, ensuring the platform remains 100% functional during high-traffic hackathon demos.
-- **Rebranding**: Successfully rebranded the entire ecosystem from Elevate to BharatGeo Insights to better align with the core problem statement.
+- **Rebranding**: Successfully rebranded the entire ecosystem to BharatGeo Insights to better align with the core problem statement.
